@@ -20,7 +20,7 @@ package org.broadinstitute.pilon
 import scala.annotation.tailrec
 import collection.JavaConversions._
 import collection.mutable.{ Map, HashMap, Set, HashSet }
-import net.sf.samtools._
+import htsjdk.samtools._
 
 object Assembler {
   var K = 47
@@ -85,6 +85,10 @@ class Assembler(val minDepth: Int = Assembler.minDepth) {
       //if (Pilon.debug) println("K=" + K + " " + kmer + " offset=" + offset + " len=" + quals.length + " " + quals)
       pileups(kmer).add(bases(offset + K), quals(offset + K), mq)
     }
+  }
+
+  def dumpReads(prefix: String, reads: List[SAMRecord]): Unit = {
+
   }
 
   // Used to create an assembly graph from sequence, e.g., contigs.

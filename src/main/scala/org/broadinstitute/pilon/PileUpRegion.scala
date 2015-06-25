@@ -19,7 +19,7 @@
 package org.broadinstitute.pilon
 
 import scala.collection.JavaConversions._
-import net.sf.samtools._
+import htsjdk.samtools._
 import Utils._
 
 class PileUpRegion(name: String, start: Int, stop: Int)
@@ -45,7 +45,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
       }
     }
   }
-
+  
   def remove(locus: Int, base: Char, qual: Int, mq: Int,
     pair: Boolean) = {
     if (inRegion(locus)) {
@@ -103,12 +103,12 @@ class PileUpRegion(name: String, start: Int, stop: Int)
   def addRead(r: SAMRecord, refBases: Array[Byte]) = {
     val length = r.getReadLength
     val bases = r.getReadBases
+    val mq = r.getMappingQuality
     val paired = r.getReadPairedFlag
-    val valid = (!paired) || (r.getProperPairFlag && (r.getReferenceIndex == r.getMateReferenceIndex))
+    val valid = (mq >= Pilon.minMq) && ((!paired) || (r.getProperPairFlag && (r.getReferenceIndex == r.getMateReferenceIndex)))
     val insert = r.getInferredInsertSize
     val aStart = r.getAlignmentStart
     val aEnd = r.getAlignmentEnd
-    val mq = r.getMappingQuality
     val cigar = r.getCigar
     var readOffset = 0
     var refOffset = 0
@@ -162,7 +162,7 @@ class PileUpRegion(name: String, start: Int, stop: Int)
             }
             pileups(index(dloc)).addDeletion(refBases.slice(dloc - 1, dloc + len - 1), quals(readOffset), adjMq)
           }
-        case CigarOperator.M =>
+        case CigarOperator.M | CigarOperator.EQ | CigarOperator.X =>
           for (i <- 0 until len) {
             val rOff = readOffset + i
             if (trusted(rOff)) {
@@ -189,6 +189,8 @@ class PileUpRegion(name: String, start: Int, stop: Int)
           }
         case CigarOperator.H =>
           // Hard clipped bases are not present in read, nothing to do here
+        case CigarOperator.N =>
+          // Skip ref bases, hopefully the consumesReferenceBases() is implemented properly!
         case _ =>
           println("unknown cigar op=" + op + " in " + r.getCigarString)
       }

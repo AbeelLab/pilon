@@ -35,12 +35,14 @@ object Pilon {
   var tracks = false
   var verbose = false
   var vcf = false
+  var vcfQE = false
   var debug = false
   // heuristics and control parameters
   var chunkSize = 10000000
   var defaultQual: Byte = 15
   var diploid = false
   var duplicates = false
+  var dumpReads = false
   var fixList = fixChoices
   var flank = 10
   var gapMargin = 100000
@@ -48,12 +50,13 @@ object Pilon {
   var minGap = 10
   var minDepth = 0.1
   var minQual = 0
+  var minMq = 0
   var multiClosure = false
   var nonPf = false
   var strays = true
   var threads = 1
   var trSafe = true
-  
+
   // Global computed data
   var novelContigs = List[String]()
   
@@ -115,6 +118,9 @@ object Pilon {
       case "--diploid" :: tail =>
         diploid = true
         optionParse(tail)
+      case "--dumpreads" :: tail =>
+        dumpReads = true
+        optionParse(tail)
       case "--duplicates" :: tail =>
         duplicates = true
         optionParse(tail)
@@ -144,6 +150,9 @@ object Pilon {
         optionParse(tail)
       case "--mingap" :: value :: tail =>
         minGap = value.toInt
+        optionParse(tail)
+      case "--minmq" :: value :: tail =>
+        minMq = value.toInt
         optionParse(tail)
       case "--minqual" :: value :: tail =>
         minQual = value.toInt
@@ -180,6 +189,9 @@ object Pilon {
         //multiClosure = true
       case "--vcf" :: tail =>
         vcf = true
+        optionParse(tail)
+      case "--vcfqe" :: tail =>
+        vcfQE = true
         optionParse(tail)
       case "--verbose" :: tail =>
         verbose = true
@@ -262,9 +274,12 @@ object Pilon {
               If specified, a file listing changes in the <output>.fasta will be generated.
            --vcf
               If specified, a vcf file will be generated
+           --vcfqe
+               If specified, the VCF will contain a QE (quality-weighted evidence) field rather
+               than the default QP (quality-weighted percentage of evidence) field.
            --tracks
-              This options will cause many track files (*.bed, *.wig) suitable for viewing in
-              IGV to be written.
+               This options will cause many track files (*.bed, *.wig) suitable for viewing in
+               a genome browser to be written.
          CONTROL:
            --variant
               Sets up heuristics for variant calling, as opposed to assembly improvement;
@@ -285,6 +300,8 @@ object Pilon {
                 "amb": fix ambiguous bases in fasta output (to most likely alternative).
                 "breaks": allow local reassembly to open new gaps (with "local").
                 "novel": assemble novel sequence from unaligned non-jump reads.
+           --dumpreads
+              Dump reads for local re-assemblies.
            --duplicates
               Use reads marked as duplicates in the input BAMs (ignored by default).
            --nonpf
@@ -318,6 +335,8 @@ object Pilon {
               is 10% of mean coverage or 5, whichever is greater).
            --mingap
               Minimum size for unclosed gaps (default 10)
+           --minmq
+              Minimum alignment mapping quality for a read to count in pileups (default 0)
            --minqual
               Minimum base quality to consider for pileups (default 0)
            --nostrays

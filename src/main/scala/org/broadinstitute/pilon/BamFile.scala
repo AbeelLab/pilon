@@ -21,7 +21,7 @@ package org.broadinstitute.pilon
 import collection.mutable.Map
 import java.io.File
 import scala.collection.JavaConversions._
-import net.sf.samtools._
+import htsjdk.samtools._
 
 object BamFile {
   val indexSuffix = ".bai"
@@ -35,8 +35,8 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   var baseCount: Long = 0
 
   def reader = {
-    val r = new SAMFileReader(bamFile, new File(path + BamFile.indexSuffix))
-    r.setValidationStringency(SAMFileReader.ValidationStringency.SILENT)
+    //val r = new SAMFileReader(bamFile, new File(path + BamFile.indexSuffix))
+    val r = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(bamFile)
     r
   }
 
@@ -136,9 +136,9 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   var proper = 0
 
   class InsertSizeStats {
-    var count = 0
-    var sum = 0.0
-    var sumSq = 0.0
+    var count: Long = 0
+    var sum: Long = 0
+    var sumSq: Long = 0
 
     def add(size: Int) = {
       sum += size
@@ -146,18 +146,18 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
       count += 1
     }
 
-    def mean = if (count > 0) (sum / count) else 0.0
+    def mean = if (count > 0) (sum.toDouble / count.toDouble) else 0.0
 
     def sigma = {
       if (sum > 0) {
-        scala.math.sqrt(((sumSq / count) - (mean * mean)).abs)
+        scala.math.sqrt(((sumSq.toDouble / count.toDouble) - (mean * mean)).abs)
       } else 0.0
     }
 
     def reset = {
       count = 0
-      sum = 0.0
-      sumSq = 0.0
+      sum = 0
+      sumSq = 0
     }
 
     def maxInsertSize = {
@@ -305,8 +305,7 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
               (region.stop + flank))
   }
   
-  def recruitBadMates(region: Region) = {
-    val midpoint = region.midpoint
+  def recruitBadMates(region: Region) = {    val midpoint = region.midpoint
     val flanks = flankRegion(region)
     val mateMap = new MateMap(readsInRegion(flanks)) 
 
@@ -347,3 +346,4 @@ class BamFile(val bamFile: File, val bamType: Symbol) {
   
   override def toString() = path
 }
+
